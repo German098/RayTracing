@@ -1,7 +1,7 @@
-#pragma once
 #ifndef HITTABLE_H
 #define HITTABLE_H
 
+#include "interval.h"
 #include "rtweekend.h"
 
 // Record hit data
@@ -33,7 +33,7 @@ class HitTable
 		virtual ~HitTable() = default;
 
 		// Have to be implemented per class
-		virtual bool Hit(const Ray& ray, const double& rayTMin, const double& rayTMax, HitRecord& rec) const = 0;
+		virtual bool Hit(const Ray& ray, const Interval& rayT, HitRecord& rec) const = 0;
 };
 
 #endif // !HITTABLE_H

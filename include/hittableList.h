@@ -1,8 +1,8 @@
-#pragma once
 #ifndef HITTABLE_LIST_H
 #define HITTABLE_LIST_H
 
 #include <vector>
+#include "rtweekend.h"
 #include "hittable.h"
 
 class HitTableList : public HitTable
@@ -19,16 +19,16 @@ class HitTableList : public HitTable
 		void Clear() { objects.clear(); }
 
 		// Check if ray hit something in range (rayTMin, rayTMax)
-		bool Hit(const Ray& ray, const double& rayTMin, const double& rayTMax, HitRecord& rec)
+		bool Hit(const Ray& ray, const Interval& rayT, HitRecord& rec) const override
 		{
 			HitRecord auxRec;
 			bool hitAnything = false;
-			double tClosestSoFar = rayTMax;
+			double tClosestSoFar = rayT.Max();
 
 			for (const HitTable* obj : objects)
 			{
 				// Check for collision in range (rayTMin, tClosestSoFar) for objects array
-				if (obj->Hit(ray, rayTMin, tClosestSoFar, auxRec))
+				if (obj->Hit(ray, Interval(rayT.Min(), tClosestSoFar), auxRec))
 				{
 					// Hit something
 					hitAnything = true;

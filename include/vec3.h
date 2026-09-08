@@ -1,7 +1,7 @@
-#pragma once
 #ifndef VEC3_H
 #define VEC3_H
 
+#include <math.h>
 #include <fstream>
 #include <ostream>
 

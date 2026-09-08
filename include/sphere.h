@@ -1,4 +1,3 @@
-#pragma once
 #ifndef SPHERE_H
 #define SPHERE_H
 
@@ -13,7 +12,7 @@ class Sphere : public HitTable
 	public:
 		Sphere(const point3d& center, const double& radius) : center(center), radius(std::fmax(0.0, radius)) { }
 
-		bool Hit(const Ray& ray, const double& rayTMin, const double& rayTMax, HitRecord& rec) const
+		bool Hit(const Ray& ray, const Interval& rayT, HitRecord& rec) const override
 		{
 			// Sphere formule in terms of vectors: (C - P(t)) * (C - P(t)) = r^2, 
 			// C = ceneter; P(t) = vector from point P; r = radius
@@ -38,11 +37,11 @@ class Sphere : public HitTable
 			// NOTE: Denominator >= 0.0, so: -b - std::sqrt(....) < -b + std::sqrt(....) => t1 < t2
 			// (t1 closer to the ray origin, so use this one first)
 			double t = (h - std::sqrt(discriminant)) / a;
-			if(t <= rayTMin || t >= rayTMax)
+			if(!rayT.Surrounds(t))
 			{
 				// First solution out of range, so try second solution
 				t = (h + std::sqrt(discriminant)) / a;
-				if (t <= rayTMin || t >= rayTMax)
+				if (!rayT.Surrounds(t))
 					return false;
 			}
 

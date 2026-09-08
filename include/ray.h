@@ -1,4 +1,3 @@
-#pragma once
 #ifndef RAY_H
 #define RAY_H
 
@@ -7,8 +6,9 @@
 class Ray
 {
 private:
-	// Ray origin and position
+	// Ray origin
 	vec3 origin;
+	// Ray direction (unit vector)
 	vec3 direction;
 
 public:
