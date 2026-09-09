@@ -2,8 +2,11 @@
 #define CAMERA_H
 
 #include <iostream>
+#include <ostream>
 
-#include "rtweekend.h"
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
 #include "hittableList.h"
 
 // Construct and dispatch rays into the world and use the results of these rays to 
@@ -35,10 +38,13 @@ class Camera
 		int imageWidth = 100;
 		// Num of random samples per pixel
 		unsigned int samplesPerPixel = 10;
+		// Max number of ray bounces into scene
+		unsigned int samplesMaxDepth = 10;
 
 		void AspectRatio(const double& value) { aspectRatio = value; }
 		void ImageWidth(const int& value) { imageWidth = value; }
 		void SamplesPerPixel(const double& value) { samplesPerPixel = value; }
+		void SamplesMaxDepth(const double& value) { samplesMaxDepth = value; }
 
 	private:
 		// Initialize camera's data
@@ -95,17 +101,40 @@ class Camera
 		}
 
 		// Lineary blend white and bluish (for not hitted object) depending on the height of 
-		// the y coordinate of ray direction unit vector 
-		color RayColor(const Ray& ray, const HitTableList& objectsList)
+		// the y coordinate of ray direction unit vector and process hitted rays
+		color RayColor(const Ray& ray, unsigned int currentDepth, const HitTableList& objectsList)
 		{
 			HitRecord rec;
+
+			// If we get the ray bounce limit, no more light is gathered
+			if(currentDepth == 0)
+				return color(0.0, 0.0, 0.0); 
 		
-			// If true: hint with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf)
-			if (objectsList.Hit(ray, Interval(0.0, std::numeric_limits<double>::infinity()), rec))
-			{
+			// If true: hint with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf).
+			// A ray will attempt to accurately calculate the intersection point when it intersects with a surface (rec.pt), 
+			// this calculation is susceptible to floating point rounding errors which can cause the intersection point to 
+			// be ever so slightly off, so, the origin of the next ray, the ray that is randomly scattered off of the surface, 
+			// is unlikely to be perfectly flush with the surface (it might be just above/below, if it's below, then it could 
+			// intersect with that surface again. To solve this, we ignore hits that are very close (0.001) to calculated rec.pt.
+			if (objectsList.Hit(ray, Interval(0.001, std::numeric_limits<double>::infinity()), rec))
+			{	
+				// Normal colors
 				// normal unit vector from range [-1.0, 1.0] to range [0.0, 1.0]
-				vec3 normal = rec.normal;
-				return 0.5 * (color(normal.X(), normal.Y(), normal.Z()) + 1.0);
+				//vec3 normal = rec.normal;
+				//return 0.5 * (color(normal.X(), normal.Y(), normal.Z()) + 1.0);
+
+				// Simple diffuse
+				// normal vector is normalized
+				//vec3 direction = RandomOnHemisphere(rec.normal);
+				//return 0.5 * RayColor(Ray(rec.pt,  direction), currentDepth - 1, objectsList);
+
+				// Non-uniform Lambertian distribution. In this method a reflected ray is most likely to scatter in a 
+				// direction near the surface normal, and less likely to scatter in directions away from the normal. We 
+				// create this distribution by adding a random unit vector to the normal vector (and normalize it for next 
+				// operations).
+				vec3 direction = rec.normal + RandomUnitVector();
+				direction = unit_vector(direction);
+				return 0.5 * RayColor(Ray(rec.pt,  direction), currentDepth - 1, objectsList);
 			}
 		
 			// Scale direction vector from range [-1.0, 1.0] to range [0.0, 1.0]
@@ -123,10 +152,11 @@ class Camera
 
 			for (unsigned y = 0; y < imageHeight; y++)
 			{
-				// Log massage and empty buffer now to show message
-				std::clog << "\rScanlines remaining: " << imageHeight - y << "" << std::flush;
+				// Log massage and empty buffer now to show message. (\r set cursor at the begining of the line
+				// and erase characters after it with \033[0K) 
+				std::clog << "\r\033[0K" << "Scanlines remaining: " << imageHeight - y << "" << std::flush;
 				for (unsigned x = 0; x < imageWidth; x++)
-				{		
+				{
 					// Create ray for pixel(x, y)
 					//point3d currentPixelCenter = pixel00Local + x * pixelDeltaU + y * pixelDeltaV;
 					// rayDirection has to be a unit vector
@@ -141,19 +171,20 @@ class Camera
 					// Generate samplesPerPixel samples
 					//std::cout<<"\n"<<x<<" - "<<y<<std::endl;
 					for(unsigned int i = 0; i < samplesPerPixel; i++)
-					{	
+					{
+						// Sample
 						Ray ray = GetRay(x, y);
 						// Return color for a given scene ray (ray per pixel)
-						pixelColor += RayColor(ray, objectsList);
+						pixelColor += RayColor(ray, samplesMaxDepth, objectsList);
 					}
 					//std::cout<<"End"<<std::endl;
 		
 					
-					writeColor(std::cout, pixelSampleScale * pixelColor);
+					WriteColor(std::cout, pixelSampleScale * pixelColor);
 				}
 			}
 		
-			std::clog << "\rDone\n" << std::flush;
+			std::clog << "\n\rDone\n" << std::flush;
 		}
 
 		// Generates a random sample point within the unit square centered at the origin.

@@ -5,6 +5,8 @@
 #include <fstream>
 #include <ostream>
 
+#include "rtweekend.h"
+
 class vec3
 {
 private:
@@ -46,11 +48,27 @@ public:
 	}
 
 	// Length
-	double Length() const
+	double LengthSquared() const
 	{
-		return std::sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
+		return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
 	}
 
+	// Length
+	double Length() const
+	{
+		return std::sqrt(LengthSquared());
+	}
+
+	// Generate randoms vec3
+	static vec3 Random()
+	{
+		return vec3(RandomDouble(), RandomDouble(), RandomDouble());
+	}
+
+	static vec3 Random(const double& min, const double& max)
+	{
+		return vec3(RandomDouble(min, max), RandomDouble(min, max), RandomDouble(min, max));
+	}
 };
 
 // Alias for vec3 (useful for geometric clarity in the code)
@@ -118,6 +136,46 @@ inline vec3 cross(const vec3& a, const vec3& b)
 inline vec3 unit_vector(const vec3& a)
 {
 	return a / a.Length();
+}
+
+// Generate random unit vector ([-1.0, 1.0]) in unit sphere
+inline vec3 RandomUnitVector()
+{
+	// As long as the vector is not inside the unit sphere, repeat it
+	while(true)
+	{
+		vec3 p = vec3::Random(-1.0, 1.0);
+		// p's length = sqrt(px^2 + py^2 + pz^2) <= 1 to get inside sphere, but 
+		// px^2 + py^2 + pz^2) <= 1^2, so sqrt is not necessary to check it  
+		double lengthSquared = p.LengthSquared();
+		// To ensure to avoid underflow to zero when squared (if p components are a 
+		// value near to min double value, square operation in p.Length() can underflow 
+		// to zero, demnominator = 0), check lengthSquared > 1e-160, so, there is a 
+		// "black hole" at center of sphere with radius = 1e-80.
+		if(lengthSquared > 1e-160 && lengthSquared <= 1)
+		{
+			// Normalize random vector inside the sphere
+			return p / p.Length();
+		}
+	}
+}
+
+// Generate a random unit vector on hemisphere normal direction
+inline vec3 RandomOnHemisphere(const vec3& normal)
+{
+	// Random unit vector on sphere
+	vec3 p = RandomUnitVector();
+
+	// If it is located in the opposite hemisphere, turn it over
+	if(dot(p, normal) > 0)
+	{
+		// It is in the same hemisphere as the normal
+		return p;
+	}
+	else
+	{
+		return -p;
+	}
 }
 
 #endif

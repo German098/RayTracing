@@ -1,6 +1,8 @@
 #ifndef SPHERE_H
 #define SPHERE_H
 
+#include "vec3.h"
+#include "ray.h"
 #include "hittable.h"
 
 class Sphere : public HitTable 

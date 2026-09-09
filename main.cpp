@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "rtweekend.h"
-#include "hittableList.h"
+#include "vec3.h"
+#include "ray.h"
 #include "sphere.h"
 #include "camera.h"
  
@@ -18,6 +18,7 @@ int main(int argc, char const* argv[])
 	camera.AspectRatio(16.0 / 9.0);
 	camera.ImageWidth(400);
 	camera.SamplesPerPixel(100);
+	camera.SamplesMaxDepth(50);
 
 	// Render image
 	camera.Render(objectsList);
