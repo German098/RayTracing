@@ -8,6 +8,7 @@
 #include "color.h"
 #include "ray.h"
 #include "hittableList.h"
+#include "material.h"
 
 // Construct and dispatch rays into the world and use the results of these rays to 
 // construct the rendered image.
@@ -108,7 +109,7 @@ class Camera
 
 			// If we get the ray bounce limit, no more light is gathered
 			if(currentDepth == 0)
-				return color(0.0, 0.0, 0.0); 
+				return color(0.0, 0.0, 0.0);
 		
 			// If true: hint with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf).
 			// A ray will attempt to accurately calculate the intersection point when it intersects with a surface (rec.pt), 
@@ -128,13 +129,14 @@ class Camera
 				//vec3 direction = RandomOnHemisphere(rec.normal);
 				//return 0.5 * RayColor(Ray(rec.pt,  direction), currentDepth - 1, objectsList);
 
-				// Non-uniform Lambertian distribution. In this method a reflected ray is most likely to scatter in a 
-				// direction near the surface normal, and less likely to scatter in directions away from the normal. We 
-				// create this distribution by adding a random unit vector to the normal vector (and normalize it for next 
-				// operations).
-				vec3 direction = rec.normal + RandomUnitVector();
-				direction = unit_vector(direction);
-				return 0.5 * RayColor(Ray(rec.pt,  direction), currentDepth - 1, objectsList);
+				Ray ray_scattered;
+				color attenuation;
+
+				if(rec.mat->Scatter(ray, rec, attenuation, ray_scattered))
+					return attenuation * RayColor(ray_scattered, currentDepth - 1, objectsList);
+
+				// Fully absorbed ray by material, so, any ray to scatter
+				return vec3(0.0, 0.0, 0.0);
 			}
 		
 			// Scale direction vector from range [-1.0, 1.0] to range [0.0, 1.0]

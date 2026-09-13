@@ -10,9 +10,10 @@ class Sphere : public HitTable
 	private:
 		point3d center;
 		double radius;
+		Material* mat;
 
 	public:
-		Sphere(const point3d& center, const double& radius) : center(center), radius(std::fmax(0.0, radius)) { }
+		Sphere(const point3d& center, const double& radius, Material* mat) : center(center), radius(std::fmax(0.0, radius)) , mat(mat) { }
 
 		bool Hit(const Ray& ray, const Interval& rayT, HitRecord& rec) const override
 		{
@@ -55,6 +56,8 @@ class Sphere : public HitTable
 			// to the surface and |CP| = radius, so, rec.normal = (P - C) / |CP| = (P - C) / radius)
 			vec3 outwardNormal = (rec.pt - center) / radius;
 			rec.SetFaceNormal(ray, outwardNormal);
+			// Assign sphere material to hit data material
+			rec.mat = mat;
 
 			return true;
 		}

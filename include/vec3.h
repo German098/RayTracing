@@ -1,6 +1,7 @@
 #ifndef VEC3_H
 #define VEC3_H
 
+#include <cmath>
 #include <math.h>
 #include <fstream>
 #include <ostream>
@@ -57,6 +58,14 @@ public:
 	double Length() const
 	{
 		return std::sqrt(LengthSquared());
+	}
+
+	// Return true, if vec3 is close to zero for all components
+	bool NearZero() const 
+	{
+		const double a = 1e-8;
+
+		return (std::fabs(e[0]) < a && std::fabs(e[1]) < a && std::fabs(e[2]) < a);
 	}
 
 	// Generate randoms vec3
@@ -136,6 +145,23 @@ inline vec3 cross(const vec3& a, const vec3& b)
 inline vec3 unit_vector(const vec3& a)
 {
 	return a / a.Length();
+}
+
+// Get reflect ray from incident ray v and normal n. N has to be normalized.
+// If v is normalized, return reflect vector will also be nromalized.
+inline vec3 Reflect(const vec3& v, const vec3& n)
+{
+	// First, calculate v prjection over n => b = dot(v, n) (it tells us 
+	// how much of v lies in the direction of n). |n| = 1, so dot(v, n) =
+	// |v|*cos(theta) = +/- v projection's length over n. We negate the result,
+	// becasue we want b to point out of the surface, so: b = -(dot(v, n))*n 
+	// (multiply by n to get the projection vector that points at same direction 
+	// of n). We need to invert sign of normal component of v to points out of 
+	// surface. E.g.: n = (0, 1) and v = (1, -2), -b = (0, -2), so normal component
+	// of v is (0, -2) = -b, after reflection we want b = (0, 2), so, what 
+	// vector do I have to add to -b to obtain +b? -b + (b - (-b)) = -b + 2*b = b. 
+	// r = v + 2*b = v -2*(dot(v, n))*n.
+	return v - 2 * dot(v, n) * n;
 }
 
 // Generate random unit vector ([-1.0, 1.0]) in unit sphere

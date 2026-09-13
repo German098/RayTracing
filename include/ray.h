@@ -13,7 +13,7 @@ private:
 
 public:
 	// Constructors
-	Ray() {}
+	Ray() { }
 	Ray(const point3d& org, const vec3& dir) : origin(org), direction(dir) {};
 
 	// Getters

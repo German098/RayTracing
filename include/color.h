@@ -8,6 +8,7 @@
 #include <iostream>
 #include "interval.h"
 
+// Transfrom component value to gamma space
 inline double LinearToGamma(const double& value)
 {
 	return /*std::sqrt(value);*/ std::pow(value, 1 / 2.2);

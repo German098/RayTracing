@@ -5,7 +5,11 @@
 #include "ray.h"
 #include "interval.h"
 
-// Record hit data
+class Material;
+
+// Record hit data. This class is to avoid a bunch of arguments so we can stuff whatever 
+// info we want in there. You can use arguments instead of an encapsulated type, it’s 
+// just a matter of taste. 
 class HitRecord
 {
 	public:
@@ -17,6 +21,8 @@ class HitRecord
 		double t;
 		// If true: incident ray is outside the sphere, else: inside it
 		bool frontFace;
+		// Material of hitted surface
+		Material* mat;
 
 		void SetFaceNormal(const Ray& ray, const vec3& outwardNormal)
 		{
