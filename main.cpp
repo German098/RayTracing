@@ -14,15 +14,15 @@ int main(int argc, char const* argv[])
 	// Materials
 	Material* material_ground = new Lambertian(color(0.8, 0.8, 0.0));
 	Material* material_center = new Lambertian(color(0.1, 0.2, 0.5));
-	Material* material_left = new Metal(color(0.8, 0.8, 0.8), 0.3);
+	Material* material_left = new Dielectric(1.5 /* ~= glass */);
 	Material* material_right = new Metal(color(0.8, 0.6, 0.2), 1.0);
 
 	// Objects
 	HitTableList objectsList;
-	objectsList.Add(new Sphere(point3d(0.0, 0.0, -1.0), 0.5, material_center));
+	//objectsList.Add(new Sphere(point3d(0.0, 0.0, -1.0), 0.5, material_center));
 	objectsList.Add(new Sphere(point3d(0.0, -100.5, -1.0), 100.0, material_ground));
-	objectsList.Add(new Sphere(point3d(-1.0, 0.0, -0.5), 0.5, material_left));
-	objectsList.Add(new Sphere(point3d(1.0, 0.0, -1.0), 0.5, material_right));
+	objectsList.Add(new Sphere(point3d(-1.0, 0.0, -1.0), 0.5, material_left));
+	//objectsList.Add(new Sphere(point3d(1.0, 0.0, -1.0), 0.5, material_right));
 
 	// Camera
 	Camera camera;

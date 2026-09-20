@@ -164,6 +164,30 @@ inline vec3 Reflect(const vec3& v, const vec3& n)
 	return v - 2 * dot(v, n) * n;
 }
 
+// Get refracted ray from incident ray v and normal n. rri is relative refraction 
+// index. v has to be normalized.
+inline vec3 Refract(const vec3& v, const vec3& n, const double& rri)
+{
+	// -1.0 < cos(theta) < 1.0, so, if, due to numerical precision, it turns out to 
+	// be slightly greater than 1.0, use 1.0.
+	double cosTheta = std::fmin(dot(-v, n), 1.0);
+	// Get perpendicular projection of v on n (v and n have same direction): dot(v, n) * n 
+	// (dot(v, n) tells us how much of v lies in n). dot(v, n) = |v|*|n|*cos(theta) = 
+	// cos(theta), so, vParall = -cos(theta) * n (v has to point towards the surface). 
+	// So, vPerp = v - vParall = v + cos(theta) * n. Refraction changes the angle depending 
+	// on the refractive indices: rPerp = rri * (r + cos(theta) * n)
+	vec3 vPerp = rri * (v + cosTheta * n);
+	// Get parallel projection of v on n: v = vPerp + vParall; Apply Pitagoras theorem: 
+	// |v|^2 = |vPerp|^2 + |vParall|^2 (v is the hypotenuse), |v| = 1, so 
+	// vParall = sqrt(1 - |vPerp|^2) (this is the vParall's length, but we need to convert 
+	// that number into a vector pointing in the opposite direction of the incident normal).
+	// vParall = sqrt(1 - |vPerp|^2) * (-n).
+	vec3 vParall = -std::sqrt(std::fabs(1.0 - vPerp.LengthSquared())) * n;
+
+	// refracted vector = vPerp + vParall
+	return vPerp + vParall;
+}
+
 // Generate random unit vector ([-1.0, 1.0]) in unit sphere
 inline vec3 RandomUnitVector()
 {

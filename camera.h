@@ -110,7 +110,7 @@ class Camera
 			// If we get the ray bounce limit, no more light is gathered
 			if(currentDepth == 0)
 				return color(0.0, 0.0, 0.0);
-		
+
 			// If true: hint with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf).
 			// A ray will attempt to accurately calculate the intersection point when it intersects with a surface (rec.pt), 
 			// this calculation is susceptible to floating point rounding errors which can cause the intersection point to 
@@ -133,14 +133,18 @@ class Camera
 				color attenuation;
 
 				if(rec.mat->Scatter(ray, rec, attenuation, ray_scattered))
+				{
+					//std::cout<<"Rec.pt "<<rec.pt.X()<<" "<<rec.pt.Y()<<" "<<rec.pt.Z()<<std::endl;
 					return attenuation * RayColor(ray_scattered, currentDepth - 1, objectsList);
+				}
 
 				// Fully absorbed ray by material, so, any ray to scatter
-				return vec3(0.0, 0.0, 0.0);
+				return color(0.0, 0.0, 0.0);
 			}
-		
+					
 			// Scale direction vector from range [-1.0, 1.0] to range [0.0, 1.0]
 			double a = 0.5 * (ray.Direction().Y() + 1.0);
+			//std::cout<<"a value: "<<a<<" | "<<ray.Origin().X()<<" "<<ray.Origin().Y()<<" - "<<ray.Direction().X()<<" "<<ray.Direction().Y()<<std::endl;
 			// If a == 1: ray color = bluish or if a == 0: ray color = white. Linear interpolation:
 			return (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
 		}

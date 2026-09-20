@@ -81,4 +81,36 @@ class Metal : public Material
 		double fuzz;
 };
 
+class Dielectric : public Material 
+{
+	public:
+		Dielectric(const double& refractionIndex) : refractionIndex(refractionIndex) { }
+
+		bool Scatter(const Ray& ray, const HitRecord& rec, color& attenuation, Ray& scatteredRay) const
+		{
+			// Keep attenuation (ray color/energy) at same value
+			attenuation = color(1.0, 1.0, 1.0);
+			// Relative refraction index: refractive index of the material of the object from which the 
+			// ray originates (assume it originates in the vacuum =~ 1.0), divided by the refractive index of 
+			// the surrounding material (where the ray is refracted). 
+			double rri = rec.frontFace ? (1.0 / refractionIndex) : refractionIndex;
+
+			// Get refracted vector
+			vec3 refracted = Refract(ray.Direction(), rec.normal, rri);
+			refracted = unit_vector(refracted);
+
+			// Refracted scattered ray (origin at the point of the incident ray)
+			scatteredRay = Ray(rec.pt, refracted);
+			std::cout<<"ray: "<<ray.Direction().X()<<" "<<ray.Direction().Y()<<" "<<ray.Direction().Z()<<std::endl;
+			std::cout<<"scatteredRay: "<<scatteredRay.Direction().X()<<" "<<scatteredRay.Direction().Y()<<" "<<scatteredRay.Direction().Z()<<std::endl;
+
+			return true;
+		}
+
+	private:
+		// Material's refractive index to calculate the amount that a refracted ray bends
+		double refractionIndex;
+
+};
+
 #endif

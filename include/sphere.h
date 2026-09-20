@@ -5,6 +5,8 @@
 #include "ray.h"
 #include "hittable.h"
 
+#include <iostream>
+
 class Sphere : public HitTable 
 {
 	private:
@@ -17,12 +19,13 @@ class Sphere : public HitTable
 
 		bool Hit(const Ray& ray, const Interval& rayT, HitRecord& rec) const override
 		{
-			// Sphere formule in terms of vectors: (C - P(t)) * (C - P(t)) = r^2, 
-			// C = ceneter; P(t) = vector from point P; r = radius
-			// With P(t) = A + t * b => t^2 * b * b - 2 * t * d * (C - A) + (C - A) * (C - A) - r^2 = 0,
-			// we have to solve t value (C, A b and r are constants)
-			// Solutions: 0 solutions = ray doesn't hit sphere, 2 solutions = hit twice and 1 solution = hit once
-			// NOTE: If b = -2 * h, we can siplify: (-b +- std::sqrt(b * b - 4 * a * c)) / (2 * a) => (h +- std::sqrt(h^2 - a * c)) / a
+			// Sphere formule in terms of vectors: (C - P(t)) * (C - P(t)) = r^2 (P(t) = A + t * b), any point P that 
+			// satisfies equation is on the sphere, C = ceneter; P(t) = vector from point P; r = radius. 
+			// We want to solve for t, so we'll separate the terms based on whether there is a t or not: 
+			// (-t * b + (C - A)) * (-t * b + (C - A)) = r^2 => t^2 * b * b - 2 * t * d * (C - A) + (C - A) * (C - A) - r^2 = 0 (quadratic equation),
+			// we have to solve t value (C, A, b and r are constants). Solutions: 0 solutions = ray doesn't hit sphere, 2 solutions = hit 
+			// twice and 1 solution = hit once.
+			// NOTE: If b = -2 * h, we can simplify: (-b +- std::sqrt(b * b - 4 * a * c)) / (2 * a) => (h +- std::sqrt(h^2 - a * c)) / a
 			// and if |ray.Direction()| = 1, so dot(ray.Direction() * ray.Direction()) = |ray.Direction()|^2 = 1, so a = 1
 			vec3 ca = center - ray.Origin();
 			double a = 1; //dot(ray.Direction(), ray.Direction());
@@ -33,10 +36,10 @@ class Sphere : public HitTable
 
 			// If discriminant of quadratic equation < 0, no hit, else: there is at least one solution, so ray hit 
 			// sphere. Find the nearest root that lies in range (rayTMin, rayTMax).
-			if (discriminant < 0)
+			if (discriminant < 0.0)
 				return false;
 
-			// Resolve equation to get t (value to move the origin A along the ray/line) value
+			// Resolve equation to get t (value to move the origin A along the ray/line) value.
 			// NOTE: Denominator >= 0.0, so: -b - std::sqrt(....) < -b + std::sqrt(....) => t1 < t2
 			// (t1 closer to the ray origin, so use this one first)
 			double t = (h - std::sqrt(discriminant)) / a;
@@ -45,9 +48,13 @@ class Sphere : public HitTable
 				// First solution out of range, so try second solution
 				t = (h + std::sqrt(discriminant)) / a;
 				if (!rayT.Surrounds(t))
+				{
 					return false;
+				}
 			}
 
+			//std::cout<<"center: "<<center.X()<<" "<<center.Y()<<" "<<center.Z()<<" rad: "<<radius<<std::endl;
+			//std::cout<<"t value: "<<t<<std::endl;
 			// Update hit data
 			rec.t = t;
 			// Collision point on sphere
