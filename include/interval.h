@@ -1,7 +1,7 @@
 #ifndef INTERVAL_H
 #define INTERVAL_H
 
-#include <limits>
+#include "rtweekend.h"
 
 class Interval
 {
@@ -11,7 +11,7 @@ class Interval
 
 	public:
 		// Constructors
-		Interval() : min(-std::numeric_limits<double>::infinity()), max(std::numeric_limits<double>::infinity()) { }
+		Interval() : min(-INF), max(INF) { }
 		Interval(const double &min, const double& max) : min(min), max(max) { }
 
 		// Getters

@@ -4,10 +4,10 @@
 include = include
 
 main : main.o
-	g++ main.o -o main
+	g++ -g -O0 main.o -o main
 
 main.o : main.cpp
-	g++ -I./$(include) -c main.cpp
+	g++ -g -O0 -I./$(include) -c main.cpp
 
 # 4.6 Phony targets
 .PHONY : clean

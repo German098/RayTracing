@@ -49,6 +49,7 @@ class Sphere : public HitTable
 				t = (h + std::sqrt(discriminant)) / a;
 				if (!rayT.Surrounds(t))
 				{
+					//std::cout<<"NO HIT"<<std::endl;
 					return false;
 				}
 			}

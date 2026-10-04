@@ -92,17 +92,43 @@ class Dielectric : public Material
 			attenuation = color(1.0, 1.0, 1.0);
 			// Relative refraction index: refractive index of the material of the object from which the 
 			// ray originates (assume it originates in the vacuum =~ 1.0), divided by the refractive index of 
-			// the surrounding material (where the ray is refracted). 
+			// the surrounding material (where the ray is refracted). For example, if you want to render a glass 
+			// ball under water, then the glass ball would have an effective refractive index of 1.125. This is 
+			// given by the refractive index of glass (1.5) divided by the refractive index of water (1.333). 
 			double rri = rec.frontFace ? (1.0 / refractionIndex) : refractionIndex;
 
-			// Get refracted vector
-			vec3 refracted = Refract(ray.Direction(), rec.normal, rri);
-			refracted = unit_vector(refracted);
+			// There are ray angles for which no solution is possible using Snell's law. When a ray enters a medium of lower index of 
+			// refraction at a sufficiently glancing angle (far to normal point surface). If a ray pass from glass (n1 ~= 1.5) to vaccum 
+			// (n2 ~= 1.0), 1.5*sin(theta1) = 1.0*sin(theta2); If sin(theta1) = A: sin(theta2) = 1.5*A; theta2 = arcsin(1.5*A); 
+			// If 1.5*A > 1.0: doesn't exist an angle it's sin(angle) > 1.0. In this cases, we reflect the ray and because in practice 
+			// that is usually inside solid objects, it is called total internal reflection. The value of A increases the further the direction of 
+			// the ray is from normal surface (but if ray enters a medium of higher index of refraction than it's own, n1/n2 < 1.0, so,
+			// no problem). To check if it can happen a total internal reflection, the critical angle (refracted angle at which total internal 
+			// reflection begins): sin(theta_critical) = n2/n1; theta_critical = arcsin(n2/n1), if theta2 > theta_critical: total internal reflection,
+			// else: refraction.
+			// Calculate a angle between incident ray and normal(theta1)
+			double cosAngle = std::fmin(dot(-ray.Direction(), rec.normal), 1.0);
+			// Using trigonometry identities: sin(angle) = sqrt(1 - cos^2(angle))
+			double sinAngle = std::sqrt(1.0 - cosAngle * cosAngle);
+
+			vec3 scatteredRayDirection;
+			// If rri * sinAngle > 1.0 || proportion light reflected (percentage) > [0.0, 1.0): reflect ray, else: refract it. Real 
+			// glass has reflectivity that varies with angle. When a light wave reaches the interface between two dielectrics (e.g., air → glass), 
+			// the energy is generally distributed between: incidnte light = reflected light + transmitted light (refracted light), and the ratio between 
+			// the two depends on the angle of incidence and the refractive indices. So, when current ray reffracts, calculate how much of light is reflected, 
+			// and if it is higher than random value ([0.0, 1.0)), reflect current ray.
+			if (rri * sinAngle > 1.0 || Reflectance(cosAngle, rri) > RandomDouble()) {
+				//while(true);
+				scatteredRayDirection = Reflect(ray.Direction(), rec.normal);
+			}
+			else {
+				// Get refracted vector
+				scatteredRayDirection = Refract(ray.Direction(), rec.normal, rri);
+			}
+			scatteredRayDirection = unit_vector(scatteredRayDirection);
 
 			// Refracted scattered ray (origin at the point of the incident ray)
-			scatteredRay = Ray(rec.pt, refracted);
-			std::cout<<"ray: "<<ray.Direction().X()<<" "<<ray.Direction().Y()<<" "<<ray.Direction().Z()<<std::endl;
-			std::cout<<"scatteredRay: "<<scatteredRay.Direction().X()<<" "<<scatteredRay.Direction().Y()<<" "<<scatteredRay.Direction().Z()<<std::endl;
+			scatteredRay = Ray(rec.pt, scatteredRayDirection);
 
 			return true;
 		}
@@ -111,6 +137,15 @@ class Dielectric : public Material
 		// Material's refractive index to calculate the amount that a refracted ray bends
 		double refractionIndex;
 
+		// Schlick Approximation allows for the calculation of the proportion of light reflected and refracted at a surface without having to calculate the 
+		// exact Fresnel equations. The Fresnel effect causes a surface to reflect more light when viewed from a very shallow angle (far from normla vector).
+		static double Reflectance(const double& cosAngle, double ri) {
+			// R(theta) = R0 + (1 - R0) * (1 - cos(theta))^5 . Theta = angle between light ray and normal, R0 = reflectance percentage when light hit perpendicular 
+			// to surface (theta = 0º) = ((n1 - n2) / (n1 + n2))^2, rest of the light is transmitted (refracted). n1 = vaccum refractive index.
+			double r0 = (1.0 - ri) / (1.0 + ri);
+			r0 = r0 * r0;
+			return r0 + (1 - r0) * std::pow((1 - cosAngle), 5);
+		}
 };
 
 #endif

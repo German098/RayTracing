@@ -14,7 +14,7 @@ inline double LinearToGamma(const double& value)
 	return /*std::sqrt(value);*/ std::pow(value, 1 / 2.2);
 }
 
-void WriteColor(std::ostream& out, const color& pixelColor)
+void WriteColor(std::ostream& out, const color& pixelColor, unsigned int x, unsigned int y)
 {
 	Interval interval(0.0, 1.0);
 	if(!interval.Contains(pixelColor.X()) || !interval.Contains(pixelColor.Y()) || !interval.Contains(pixelColor.Z()))
@@ -35,6 +35,9 @@ void WriteColor(std::ostream& out, const color& pixelColor)
 	double rbyte = int(255.999 * r);
 	double gbyte = int(255.999 * g);
 	double bbyte = int(255.999 * b);
+
+	if(rbyte == 0.0 && gbyte == 0.0 && bbyte == 0.0) 
+		int stop = 1;
 
 	// Write out the pixel color components
 	out << rbyte << " " << gbyte << " " << bbyte << "\n";

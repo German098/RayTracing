@@ -30,6 +30,10 @@ class Camera
 		// Color scale factor for a sum of pixel samples (to maintain the 
 		// range [0.0, 1.0] in pixel color to write on image)
 		double pixelSampleScale;
+		// Camera frame basis vectors (vectors in orthogonal plane to view direction)
+		vec3 u;
+		vec3 v;
+		vec3 w;
 
 
 	public:
@@ -41,6 +45,16 @@ class Camera
 		unsigned int samplesPerPixel = 10;
 		// Max number of ray bounces into scene
 		unsigned int samplesMaxDepth = 10;
+		// Vertical field of view angle. Vertical visual angle from edge to edge of the rendered image. So, 
+		// how much of the scene fits into the image?
+		double vFOV = 90;
+		// Point camera is looking from 
+		point3d lookFrom = point3d(0, 0, 0);
+		// Point camera is looking at
+		point3d lookAt = point3d(0, 0, -1);
+		// Camera.relative up directio. This up vector will be project onto the plane orthogonal to the 
+		// view direction (lookAt - lookFrom vector or w) to get a camera-relative up vector (vector v).
+		vec3 vUp = vec3(0, 1, 0);
 
 		void AspectRatio(const double& value) { aspectRatio = value; }
 		void ImageWidth(const int& value) { imageWidth = value; }
@@ -59,30 +73,46 @@ class Camera
 			pixelSampleScale = 1.0 / samplesPerPixel;
 
 			// Camera center
-			center = point3d(0.0, 0.0, 0.0);
+			center = lookFrom;
 
-			// Distance between viewport and camera center (orthogonal distnace)
-			focalLength = 1.0;
+			// Distance between viewport and camera center (orthogonal distance)
+			focalLength = (lookFrom - lookAt).Length();
+			// Angle formed by the upper and lower edges of viweport
+			double vertical_angle = DegreesToRadians(vFOV);
+			// Height of one of the edges relative to the focal vector.
+			double h = std::tan(vertical_angle / 2) * focalLength;
 
-			// Viewport width and height. Note that aspect_ratio is an ideal ratio, which we 
+			// Calculate unit bases vectors for the camera coordinate frame (orthogonal plane to view vector or w)
+			// Oposite vecttor to view vector
+			w = unit_vector(lookFrom - lookAt);
+			// Horizontal vector on orthogonal plane to w
+			u = unit_vector(cross(vUp, w));
+			// Verteical vector (get real vector up for camera)
+			v = cross(w, u);
+
+			// Viewport height = 2.0 * h (h = half viweport height)
+			viewportHeight = 2.0 * h;
+			// Viewport width. Note that aspectRatio is an ideal ratio, which we 
 			// approximate as best as possible with the integer-based ratio of image width over 
 			// image height. In order for our viewport proportions to exactly match our image 
-			// proportions, we use image_width and image_height (real image dimensions) to 
+			// proportions, we use imageWidth and imageHeight (real image dimensions) to 
 			// determine our final viewport width.
-			viewportHeight = 2.0;
 			double viewportWidth = viewportHeight * (double(imageWidth) / imageHeight);
 
 			// Vectors across the horizontal and down the vertical viewport edges (right-handed 
-			// system: Y up, X right, Z in the direction opposite to the viewport)
-			vec3 viewportU = vec3(viewportWidth, 0, 0);
-			vec3 viewportV = vec3(0, -viewportHeight, 0);
+			// system: Y up, X right, Z in opposite direction to the viewport). As we scan our image, we will 
+			// start at the upper left pixel (pixel 0.0), scan left-to-right across each row, and then scan 
+			// row-by-row, top-to-bottom. To help navigate the pixel grid, we'll use a vector from the left edge to the 
+			// right edge (viewportU), and a vector from the upper edge to the lower edge (viewportV).
+			vec3 viewportU = u * viewportWidth;
+			vec3 viewportV = -v * viewportHeight;
 
 			// Delta vectors for distance form pixel to pixel
 			pixelDeltaU = viewportU / imageWidth;
 			pixelDeltaV = viewportV / imageHeight;
 
 			// Location of upper left pixel Pixel(0, 0)
-			point3d viewportUpperLeft = center - vec3(0.0, 0.0, focalLength) - viewportU / 2.0 - viewportV / 2.0;
+			point3d viewportUpperLeft = center - (w * focalLength) - viewportU / 2.0 - viewportV / 2.0;
 			pixel00Local = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
 		}
 
@@ -111,13 +141,13 @@ class Camera
 			if(currentDepth == 0)
 				return color(0.0, 0.0, 0.0);
 
-			// If true: hint with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf).
+			// If true: hit with sphere. infinity() return infinity number (special number 64bits = 0x7FF0000000000000 = +inf).
 			// A ray will attempt to accurately calculate the intersection point when it intersects with a surface (rec.pt), 
 			// this calculation is susceptible to floating point rounding errors which can cause the intersection point to 
 			// be ever so slightly off, so, the origin of the next ray, the ray that is randomly scattered off of the surface, 
 			// is unlikely to be perfectly flush with the surface (it might be just above/below, if it's below, then it could 
 			// intersect with that surface again. To solve this, we ignore hits that are very close (0.001) to calculated rec.pt.
-			if (objectsList.Hit(ray, Interval(0.001, std::numeric_limits<double>::infinity()), rec))
+			if (objectsList.Hit(ray, Interval(0.001, INF), rec))
 			{	
 				// Normal colors
 				// normal unit vector from range [-1.0, 1.0] to range [0.0, 1.0]
@@ -137,7 +167,11 @@ class Camera
 					//std::cout<<"Rec.pt "<<rec.pt.X()<<" "<<rec.pt.Y()<<" "<<rec.pt.Z()<<std::endl;
 					return attenuation * RayColor(ray_scattered, currentDepth - 1, objectsList);
 				}
+				else {
+					//std::cout<<"NO SCATTER"<<std::endl;
+				}
 
+				//std::cout<<"LLEGA"<<std::endl;
 				// Fully absorbed ray by material, so, any ray to scatter
 				return color(0.0, 0.0, 0.0);
 			}
@@ -156,12 +190,12 @@ class Camera
 
 			std::cout << "P3\n" << imageWidth << " " << imageHeight << "\n255" << std::endl;
 
-			for (unsigned y = 0; y < imageHeight; y++)
+			for (unsigned int y = 0; y < imageHeight; y++)
 			{
 				// Log massage and empty buffer now to show message. (\r set cursor at the begining of the line
 				// and erase characters after it with \033[0K) 
 				std::clog << "\r\033[0K" << "Scanlines remaining: " << imageHeight - y << "" << std::flush;
-				for (unsigned x = 0; x < imageWidth; x++)
+				for (unsigned int x = 0; x < imageWidth; x++)
 				{
 					// Create ray for pixel(x, y)
 					//point3d currentPixelCenter = pixel00Local + x * pixelDeltaU + y * pixelDeltaV;
@@ -171,6 +205,9 @@ class Camera
 					// origin rays = camera center
 					//Ray ray(center, unitRayDirection);
 		
+					if(x == 38 && y == 48)
+						int x = 0;
+
 					// Return color for a given scene ray (ray per pixel)
 					//color pixelColor = RayColor(ray, objectsList);
 					color pixelColor(0.0, 0.0, 0.0);
@@ -184,9 +221,8 @@ class Camera
 						pixelColor += RayColor(ray, samplesMaxDepth, objectsList);
 					}
 					//std::cout<<"End"<<std::endl;
-		
 					
-					WriteColor(std::cout, pixelSampleScale * pixelColor);
+					WriteColor(std::cout, pixelSampleScale * pixelColor, x, y);
 				}
 			}
 		

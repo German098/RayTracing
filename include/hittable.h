@@ -26,9 +26,10 @@ class HitRecord
 
 		void SetFaceNormal(const Ray& ray, const vec3& outwardNormal)
 		{
-			// if dot(ray dir, normal) < 0: point in opposite directions, else: 
+			// If dot(ray dir, normal) < 0: ray in opposite direction from hitted normal surface point, so, 
+			// keep sign, else: ray hit interior face, so, invert sign. 
 			// invert normal 
-			frontFace = dot(ray.Direction(), outwardNormal);
+			frontFace = dot(ray.Direction(), outwardNormal) < 0.0;
 			normal = frontFace ? outwardNormal : -outwardNormal;
 		}
 };
